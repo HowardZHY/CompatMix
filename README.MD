@@ -1,5 +1,6 @@
+### CompatMix
 
-### [![Build Status](http://ci.liteloader.com/view/Other/job/Mixin/badge/icon)](http://ci.liteloader.com/view/Other/job/Mixin/lastSuccessfulBuild/)
+Currently an updated fork of UniMix(https://github.com/CleanroomMC/MixinBooter-UniMix) that might be used for future usage.
 
 ![Mixin Logo](docs/javadoc/resources/logo.png?raw=true)
 
