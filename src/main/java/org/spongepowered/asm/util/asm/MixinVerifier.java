@@ -61,7 +61,7 @@ public class MixinVerifier extends SimpleVerifier {
                 return type.equals(expectedType);
             case Type.ARRAY:
             case Type.OBJECT:
-                if ("Lnull;".equals(type.getDescriptor())) {
+                if (type.equals(NULL_TYPE)) {
                     return true;
                 } else if (type.getSort() == Type.OBJECT || type.getSort() == Type.ARRAY) {
                     if (isAssignableFrom(expectedType, type)) {
@@ -113,10 +113,10 @@ public class MixinVerifier extends SimpleVerifier {
     }
 
     private static Type getCommonSupertype(Type type1, Type type2) {
-        if (type1.equals(type2) || "Lnull;".equals(type2.getDescriptor())) {
+        if (type1.equals(type2) || type2.equals(NULL_TYPE)) {
             return type1;
         }
-        if ("Lnull;".equals(type1.getDescriptor())) {
+        if (type1.equals(NULL_TYPE)) {
             return type2;
         }
         if (type1.getSort() < Type.ARRAY || type2.getSort() < Type.ARRAY) {

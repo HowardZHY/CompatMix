@@ -31,7 +31,57 @@ import org.objectweb.asm.tree.LabelNode;
  * A label node used as a marker in the bytecode. Does not actually visit the
  * label when visited.
  */
+<<<<<<<< HEAD:src/main/java/org/spongepowered/asm/util/asm/MarkerNode.java
 public class MarkerNode extends LabelNode {
+========
+public class ContainerHandleModLauncherEx extends ContainerHandleModLauncher {
+
+    /**
+     * Container handle for secure jar resources offered by ModLauncher
+     */
+    static class SecureJarResource extends ContainerHandleURI {
+
+        private SecureJar jar;
+
+        public SecureJarResource(SecureJar resource) {
+            super(resource.getPrimaryPath().toUri());
+            this.jar = resource;
+        }
+        
+        @Override
+        public String getId() {
+            String name = this.jar.name();
+            int lastDotPos = name.lastIndexOf('.');
+            if (lastDotPos > 0) {
+                name = name.substring(0, lastDotPos);
+            }
+            return name;
+        }
+        
+        @Override
+        public String getDescription() {
+            return this.jar.getRootPath().toAbsolutePath().toString();
+        }
+
+        public String getName() {
+            return this.jar.name();
+        }
+        
+        public Path getPath() {
+            return this.jar.getPrimaryPath();
+        }
+        
+        @Override
+        public String toString() {
+            return String.format("SecureJarResource(%s)", this.getName());
+        }
+
+    }
+
+    public ContainerHandleModLauncherEx(String name) {
+        super(name);
+    }
+>>>>>>>> main:src/modlauncher9/java/org/spongepowered/asm/launch/platform/container/ContainerHandleModLauncherEx.java
     
     /**
      * Marks the end of the initialiser in a constructor

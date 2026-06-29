@@ -32,7 +32,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Joiner;
-import org.spongepowered.asm.launch.GlobalProperties;
 import org.spongepowered.asm.logging.Level;
 import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.launch.MixinInitialisationError;
@@ -60,7 +59,6 @@ import org.spongepowered.asm.mixin.transformer.ext.Extensions;
 import org.spongepowered.asm.mixin.transformer.throwables.InvalidMixinException;
 import org.spongepowered.asm.service.IMixinService;
 import org.spongepowered.asm.service.MixinService;
-import org.spongepowered.asm.util.Lazy;
 import org.spongepowered.asm.util.VersionNumber;
 
 import com.google.common.base.Strings;
@@ -142,7 +140,7 @@ final class MixinConfig implements Comparable<MixinConfig>, IMixinConfig {
     static class OverwriteOptions {
         
         /**
-         * <p>lag which specifies whether an overwrite with lower visibility than
+         * <p>Flag which specifies whether an overwrite with lower visibility than
          * its target is allowed to be applied, the visibility will be upgraded
          * if the target method is nonprivate but the merged method is private.</p>
          *
@@ -1407,9 +1405,13 @@ final class MixinConfig implements Comparable<MixinConfig>, IMixinConfig {
             if (resource == null) {
                 throw new IllegalArgumentException(String.format("The specified resource '%s' was invalid or could not be read", configFile));
             }
-            MixinConfig config = new Gson().fromJson(new InputStreamReader(resource), MixinConfig.class);
-            if (config.onLoad(service, configFile, outer, source)) {
-                return config.getHandle();
+            try (InputStreamReader reader = new InputStreamReader(resource)) {
+                MixinConfig config = new Gson().fromJson(reader, MixinConfig.class);
+                if (config.onLoad(service, configFile, outer, source)) {
+                    return config.getHandle();
+                }
+            } catch (Exception e) {
+                throw e;
             }
             return null;
         } catch (IllegalArgumentException ex) {

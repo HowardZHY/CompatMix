@@ -49,9 +49,19 @@ public final class FabricUtil {
     public static final int COMPATIBILITY_0_14_0 = 14000; // 0.14.0+mixin.0.8.6
 
     /**
+     * Fabric compatibility version 0.16.5
+     */
+    public static final int COMPATIBILITY_0_16_5 = 16005; // 0.16.5+mixin.0.8.7
+
+    /**
+     * Fabric compatibility version 0.17.0
+     */
+    public static final int COMPATIBILITY_0_17_0 = 17000; // 0.17.0+mixin.0.8.7
+
+    /**
      * Latest compatibility version
      */
-    public static final int COMPATIBILITY_LATEST = COMPATIBILITY_0_14_0;
+    public static final int COMPATIBILITY_LATEST = COMPATIBILITY_0_17_0;
 
     public static int getCompatibility(ISelectorContext context) {
         return getDecoration(getConfig(context), KEY_COMPATIBILITY, COMPATIBILITY_LATEST);
@@ -69,6 +79,6 @@ public final class FabricUtil {
         }
     }
 
-    private FabricUtil() {
-    }
+    private FabricUtil() {}
+
 }
