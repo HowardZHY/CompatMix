@@ -31,6 +31,7 @@ import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.launch.MixinInitialisationError;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.MixinEnvironment.Option;
+import org.spongepowered.asm.mixin.extensibility.IMixinProcessor;
 import org.spongepowered.asm.mixin.throwables.MixinException;
 import org.spongepowered.asm.mixin.transformer.ext.Extensions;
 import org.spongepowered.asm.mixin.transformer.ext.IExtensionRegistry;
@@ -42,7 +43,7 @@ import org.spongepowered.asm.util.asm.ASM;
 /**
  * Transformer which manages the mixin configuration and application process
  */
-final class MixinTransformer extends TreeTransformer implements IMixinTransformer {
+public final class MixinTransformer extends TreeTransformer implements IMixinTransformer {
     
     /**
      * Impl of mixin transformer factory
@@ -144,7 +145,12 @@ final class MixinTransformer extends TreeTransformer implements IMixinTransforme
     public IExtensionRegistry getExtensions() {
         return this.extensions;
     }
-    
+
+    @Override
+    public IMixinProcessor getProcessor() {
+        return this.processor;
+    }
+
     /* (non-Javadoc)
      * @see org.spongepowered.asm.service.ITransformer#getName()
      */

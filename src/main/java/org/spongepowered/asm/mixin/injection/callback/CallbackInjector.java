@@ -24,11 +24,7 @@
  */
 package org.spongepowered.asm.mixin.injection.callback;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -219,7 +215,9 @@ public class CallbackInjector extends Injector {
             //If the handler doesn't captureArgs, the CallbackInfo(Returnable) will be the first LVT slot, otherwise it will be at the target's frameSize
             int callbackInfoSlot = handlerArgs.length == 1 ? Bytecode.isStatic(handler) ? 0 : 1 : frameSize;
             boolean seenCallbackInfoUse = false;
-            for (AbstractInsnNode insn : handler.instructions) {
+            ListIterator<AbstractInsnNode> iter = handler.instructions.iterator();
+            while (iter.hasNext()) {
+                AbstractInsnNode insn = iter.next();
                 //Look for anywhere the CallbackInfo(Returnable) is loaded in the handler, it's unused if it is never loaded in
                 if (insn.getType() == AbstractInsnNode.VAR_INSN && insn.getOpcode() == Opcodes.ALOAD && ((VarInsnNode) insn).var == callbackInfoSlot) {
                     seenCallbackInfoUse = true;
@@ -234,7 +232,9 @@ public class CallbackInjector extends Injector {
                 Injector.logger.debug("{} has {} override(s) in child classes", info, childHandlers.size());
 
                 out: for (MethodNode childHandle : childHandlers) {
-                    for (AbstractInsnNode insn : childHandle.instructions) {
+                    iter = childHandle.instructions.iterator();
+                    while (iter.hasNext()) {
+                        AbstractInsnNode insn = iter.next();
                         if (insn.getType() == AbstractInsnNode.VAR_INSN && insn.getOpcode() == Opcodes.ALOAD && ((VarInsnNode) insn).var == callbackInfoSlot) {
                             seenCallbackInfoUse = true;
                             break out; //If a child uses it then the parent will need to receive it
@@ -466,10 +466,9 @@ public class CallbackInjector extends Injector {
     
     @Override
     protected void preInject(Target target, InjectionNode node) {
-        int fabricCompatibility = org.spongepowered.asm.mixin.FabricUtil.getCompatibility(info);
-        String decorationKey = CallbackInjector.LOCALS_KEY + ":" + fabricCompatibility;
+        String decorationKey = CallbackInjector.LOCALS_KEY;
         if ((this.localCapture.isCaptureLocals() || this.localCapture.isPrintLocals()) && !node.hasDecoration(decorationKey)) {
-            LocalVariableNode[] locals = Locals.getLocalsAt(this.classNode, target.method, node.getCurrentTarget(), fabricCompatibility);
+            LocalVariableNode[] locals = Locals.getLocalsAt(this.classNode, target.method, node.getCurrentTarget());
             for (int j = 0; j < locals.length; j++) {
                 if (locals[j] != null && locals[j].desc != null && locals[j].desc.startsWith("Lorg/spongepowered/asm/mixin/injection/callback/")) {
                     locals[j] = null;
@@ -486,7 +485,7 @@ public class CallbackInjector extends Injector {
      */
     @Override
     protected void inject(Target target, InjectionNode node) {
-        LocalVariableNode[] locals = node.<LocalVariableNode[]>getDecoration(CallbackInjector.LOCALS_KEY + ":" + org.spongepowered.asm.mixin.FabricUtil.getCompatibility(info));
+        LocalVariableNode[] locals = node.getDecoration(CallbackInjector.LOCALS_KEY);
         this.inject(new Callback(this.methodNode, target, node, locals, this.localCapture.isCaptureLocals()));
     }
 

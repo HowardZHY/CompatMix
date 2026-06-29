@@ -468,4 +468,37 @@ final class InnerClassGenerator implements IClassGenerator {
         return String.format("%s:%s:%s", owner.getClassRef(), innerClassName, targetClass.getName());
     }
 
+    /**
+     * Since we still technically support ASM5, and the remapping visitor class
+     * was refactored between ASM 5.0.3 and ASM 5.2, we can instatiate it using
+     * reflection in order to try both variants. Throws CNFE if the class can't
+     * be loaded for some reason
+     * 
+     * @param cv Upstream ClassVisitor
+     * @param remapper Remapper to use
+     * @return New ClassRemapper or RemappingClassAdapter
+     * @throws ReflectiveOperationException if something goes wrong
+     */
+    @SuppressWarnings("unchecked")
+    private static ClassVisitor createRemappingAdapter(ClassVisitor cv, Remapper remapper) throws ReflectiveOperationException {
+        if (InnerClassGenerator.clRemapper == null) {
+            try {
+                InnerClassGenerator.clRemapper = (Class<? extends ClassVisitor>)Class.forName(InnerClassGenerator.REMAPPER_CLASS);
+            } catch (ClassNotFoundException ex) {
+                // expected under ASM 5.0.3 since the new class doesn't exist yet 
+            }
+            
+            if (InnerClassGenerator.clRemapper == null) {
+                try {
+                    InnerClassGenerator.clRemapper = (Class<? extends ClassVisitor>)Class.forName(InnerClassGenerator.REMAPPER_CLASS_LEGACY);
+                } catch (ClassNotFoundException ex) {
+                    // Not expected
+                    throw new ClassNotFoundException(InnerClassGenerator.REMAPPER_CLASS + " or " + InnerClassGenerator.REMAPPER_CLASS_LEGACY);
+                }
+            }
+        }
+        
+        return InnerClassGenerator.clRemapper.getConstructor(ClassVisitor.class, Remapper.class).newInstance(cv, remapper);
+    }
+
 }

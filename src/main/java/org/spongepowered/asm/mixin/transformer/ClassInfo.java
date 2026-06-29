@@ -267,6 +267,12 @@ public final class ClassInfo {
                     this.size);
         }
     }
+
+    public static interface Callback {
+
+        void onInit(ClassInfo classInfo);
+
+    }
     
     /**
      * Information about a member in this class
@@ -672,6 +678,11 @@ public final class ClassInfo {
         }
     }
 
+    /**
+     * Callbacks for when ClassInfos are initialized
+     */
+    private static final List<Callback> callbacks = new ArrayList<Callback>();
+
     private static final ILogger logger = MixinService.getService().getLogger("mixin");
     
     private static final Profiler profiler = Profiler.getProfiler("meta");
@@ -904,6 +915,10 @@ public final class ClassInfo {
                     this.nestMembers.addAll(nestMembers);
                 }
             }
+
+            for (Callback callback : callbacks) {
+                callback.onInit(this);
+            }
         } finally {
             timer.end();
         }
@@ -1011,6 +1026,10 @@ public final class ClassInfo {
      */
     public Set<IMixinInfo> getAppliedMixins() {
         return this.appliedMixins != null ? Collections.<IMixinInfo>unmodifiableSet(this.appliedMixins) : Collections.<IMixinInfo>emptySet();
+    }
+
+    public Set<IMixinInfo> getApplicableMixins() {
+        return this.mixins.isEmpty() ? Collections.<IMixinInfo>emptySet() : Collections.<IMixinInfo>unmodifiableSet(this.mixins);
     }
     
     /**
@@ -1309,7 +1328,12 @@ public final class ClassInfo {
         }
 
         for (String iface : this.interfaces) {
-            ClassInfo.forName(iface).addMethodsRecursive(methods, includeMixins);
+            ClassInfo classInfo = ClassInfo.forName(iface);
+            if (classInfo == null) {
+                ClassInfo.logger.debug("Failed to resolve implementing interface {} on {}", iface, this.name);
+                continue;
+            }
+            classInfo.addMethodsRecursive(methods, includeMixins);
         }
 
         return this.getSuperClass();
@@ -2269,6 +2293,10 @@ public final class ClassInfo {
      */
     public static ClassInfo getCommonSuperClassOrInterface(ClassInfo type1, ClassInfo type2) {
         return ClassInfo.getCommonSuperClass(type1, type2, true);
+    }
+
+    public static void registerCallback(Callback callback) {
+        callbacks.add(callback);
     }
 
     private static ClassInfo getCommonSuperClass(ClassInfo type1, ClassInfo type2, boolean includeInterfaces) {

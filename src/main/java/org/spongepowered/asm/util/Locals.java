@@ -446,6 +446,10 @@ public final class Locals {
             return getLocalsAt092(classNode, method, node);
         }
     }
+
+    public static LocalVariableNode[] getLocalsAt(ClassNode classNode, MethodNode method, AbstractInsnNode node) {
+        return Locals.getLocalsAt(classNode, method, node, Settings.DEFAULT);
+    }
     
     /**
      * <p>Attempts to identify available locals at an arbitrary point in the
@@ -494,7 +498,7 @@ public final class Locals {
         return getLocalsAt(classNode, method, node, settings, org.spongepowered.asm.mixin.FabricUtil.COMPATIBILITY_LATEST);
     }
 
-    private static LocalVariableNode[] getLocalsAt(ClassNode classNode, MethodNode method, AbstractInsnNode node, Settings settings, int fabricCompatibility) {
+    public static LocalVariableNode[] getLocalsAt(ClassNode classNode, MethodNode method, AbstractInsnNode node, Settings settings, int fabricCompatibility) {
         for (int i = 0; i < 3 && (node instanceof LabelNode || node instanceof LineNumberNode); i++) {
             AbstractInsnNode nextNode = Locals.nextNode(method.instructions, node);
             if (nextNode instanceof FrameNode) { // Do not ffwd over frames
