@@ -433,7 +433,7 @@ final class InnerClassGenerator implements IClassGenerator {
 
     /**
      * Since we still technically support ASM5, and the remapping visitor class
-     * was refactored between ASM 5.0.3 and ASM 5.2, we can instatiate it using
+     * was refactored between ASM 5.0.3 and ASM 5.2, we can instantiate it using
      * reflection in order to try both variants. Throws CNFE if the class can't
      * be loaded for some reason
      * 
@@ -467,5 +467,4 @@ final class InnerClassGenerator implements IClassGenerator {
     private static String innerClassCoordinate(MixinInfo owner, ClassInfo targetClass, String innerClassName) {
         return String.format("%s:%s:%s", owner.getClassRef(), innerClassName, targetClass.getName());
     }
-
 }

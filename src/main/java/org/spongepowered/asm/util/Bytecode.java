@@ -573,6 +573,26 @@ public final class Bytecode {
         return -1;
     }
 
+    static int parseOpcodeName(String opcodeName, String start, int min) {
+        boolean found = false;
+        
+        try {
+            for (java.lang.reflect.Field f : Opcodes.class.getDeclaredFields()) {
+                if (!found && !f.getName().equals(start)) {
+                    continue;
+                }
+                found = true;
+                if (f.getType() == Integer.TYPE && f.getName().equalsIgnoreCase(opcodeName)) {
+                    return f.getInt(null);
+                }
+            }
+        } catch (Exception ex) {
+            // well this is embarrassing
+        }
+        
+        return -1;
+    }
+
     /**
      * Returns true if the supplied method contains any line number information
      * 

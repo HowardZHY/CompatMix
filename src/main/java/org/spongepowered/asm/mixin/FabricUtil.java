@@ -28,7 +28,7 @@ package org.spongepowered.asm.mixin;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfig;
 import org.spongepowered.asm.mixin.injection.selectors.ISelectorContext;
 
-public final class FabricUtil {
+public class FabricUtil {
     public static final String KEY_MOD_ID = "fabric-modId";
     public static final String KEY_COMPATIBILITY = "fabric-compat";
 
@@ -71,7 +71,7 @@ public final class FabricUtil {
     public static String getModId(IMixinConfig config, String defaultValue) {
         return getDecoration(config, KEY_MOD_ID, defaultValue);
     }
-    
+
     public static String getModId(ISelectorContext context) {
         return getDecoration(getConfig(context), KEY_MOD_ID, "(unknown)");
     }
@@ -80,11 +80,11 @@ public final class FabricUtil {
         return getDecoration(getConfig(context), KEY_COMPATIBILITY, COMPATIBILITY_LATEST);
     }
 
-    private static IMixinConfig getConfig(ISelectorContext context) {
+    public static IMixinConfig getConfig(ISelectorContext context) {
         return context.getMixin().getMixin().getConfig();
     }
 
-    private static <T> T getDecoration(IMixinConfig config, String key, T defaultValue) {
+    public static <T> T getDecoration(IMixinConfig config, String key, T defaultValue) {
         if (config.hasDecoration(key)) {
             return config.getDecoration(key);
         } else {
@@ -92,6 +92,5 @@ public final class FabricUtil {
         }
     }
 
-    private FabricUtil() {
-    }
+    public FabricUtil() {}
 }

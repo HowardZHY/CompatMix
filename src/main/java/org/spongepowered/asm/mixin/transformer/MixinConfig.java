@@ -32,6 +32,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Joiner;
+import org.spongepowered.asm.launch.GlobalProperties;
 import org.spongepowered.asm.logging.Level;
 import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.launch.MixinInitialisationError;
@@ -59,6 +60,7 @@ import org.spongepowered.asm.mixin.transformer.ext.Extensions;
 import org.spongepowered.asm.mixin.transformer.throwables.InvalidMixinException;
 import org.spongepowered.asm.service.IMixinService;
 import org.spongepowered.asm.service.MixinService;
+import org.spongepowered.asm.util.Lazy;
 import org.spongepowered.asm.util.VersionNumber;
 
 import com.google.common.base.Strings;
@@ -140,12 +142,14 @@ final class MixinConfig implements Comparable<MixinConfig>, IMixinConfig {
     static class OverwriteOptions {
         
         /**
-         * Flag which specifies whether an overwrite with lower visibility than
+         * <p>Flag which specifies whether an overwrite with lower visibility than
          * its target is allowed to be applied, the visibility will be upgraded
-         * if the target method is nonprivate but the merged method is private.
+         * if the target method is nonprivate but the merged method is private.</p>
+         *
+         * <strong>CLEANROOM CHANGE</strong>: true by default.
          */
         @SerializedName("conformVisibility")
-        boolean conformAccessModifiers;
+        boolean conformAccessModifiers = true;
         
         /**
          * Changes the default always-overwrite behaviour of mixins to
@@ -250,7 +254,7 @@ final class MixinConfig implements Comparable<MixinConfig>, IMixinConfig {
     
     /**
      * List of required {@link Feature} flags, can be used with or in place
-     * of {@link #minVersion} to provide sanity checking when a config is loaded
+     * of {@link #version} to provide sanity checking when a config is loaded
      */
     @SerializedName("requiredFeatures")
     private List<String> requiredFeatures;
@@ -1231,8 +1235,10 @@ final class MixinConfig implements Comparable<MixinConfig>, IMixinConfig {
     }
     
     /**
-     * Decorate this config with arbitrary metadata for debugging or
-     * compatibility purposes
+     * <p>Decorate this config with arbitrary metadata for debugging or
+     * compatibility purposes</p>
+     *
+     * <strong>CLEANROOM CHANGE</strong>: supplier value passed through here will stay lazy until initialized
      * 
      * @param key meta key
      * @param value meta value
@@ -1242,12 +1248,12 @@ final class MixinConfig implements Comparable<MixinConfig>, IMixinConfig {
     @Override
     public <V> void decorate(String key, V value) {
         if (this.decorations == null) {
-            this.decorations = new HashMap<String, Object>();
+            this.decorations = new HashMap<>();
         }
         if (this.decorations.containsKey(key)) {
             throw new IllegalArgumentException(String.format("Decoration with key '%s' already exists on config %s", key, this));
         }
-        this.decorations.put(key, value);
+        this.decorations.put(key, Lazy.of(value));
     }
     
     /**
@@ -1271,7 +1277,18 @@ final class MixinConfig implements Comparable<MixinConfig>, IMixinConfig {
     @Override
     @SuppressWarnings("unchecked")
     public <V> V getDecoration(String key) {
-        return (V) (this.decorations == null ? null : this.decorations.get(key));
+        if (this.decorations == null) {
+            return null;
+        }
+        Object value = this.decorations.get(key);
+        if (value == null) {
+            return null;
+        } else {
+            if (value instanceof Lazy) {
+                return ((Lazy) value).get();
+            }
+            return (V) value;
+        }
     }
 
     /**
@@ -1388,6 +1405,10 @@ final class MixinConfig implements Comparable<MixinConfig>, IMixinConfig {
      * @return new Config
      */
     static Config create(String configFile, MixinEnvironment outer, IMixinConfigSource source) {
+        Set<String> disabledMixinConfigs = GlobalProperties.get(GlobalProperties.Keys.CLEANROOM_DISABLE_MIXIN_CONFIGS, Collections.<String>emptySet());
+        if (disabledMixinConfigs.contains(configFile)) {
+            return null;
+        }
         try {
             IMixinService service = MixinService.getService();
             InputStream resource = service.getResourceAsStream(configFile);

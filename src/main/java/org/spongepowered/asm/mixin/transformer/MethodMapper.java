@@ -33,8 +33,8 @@ import com.google.common.primitives.Chars;
 import org.spongepowered.asm.logging.ILogger;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
-import org.spongepowered.asm.mixin.FabricUtil;
 import org.spongepowered.asm.mixin.MixinEnvironment;
+import org.spongepowered.asm.mixin.ModUtil;
 import org.spongepowered.asm.mixin.injection.struct.InjectionInfo;
 import org.spongepowered.asm.mixin.transformer.ClassInfo.Method;
 import org.spongepowered.asm.mixin.transformer.MixinInfo.MixinMethodNode;
@@ -183,7 +183,7 @@ class MethodMapper {
     private static String getMixinSourceId(MixinInfo mixin, String separator) {
         String sourceId = mixin.getConfig().getCleanSourceId();
         if (sourceId == null) {
-            String modId = FabricUtil.getModId(mixin.getConfig(), null);
+            String modId = ModUtil.owner(mixin.getConfig(), null);
             if (modId == null) {
                 return "";
             }
