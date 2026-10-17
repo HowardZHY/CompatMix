@@ -42,9 +42,11 @@ import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.spongepowered.asm.launch.GlobalProperties;
 import org.spongepowered.asm.launch.platform.container.ContainerHandleURI;
 import org.spongepowered.asm.launch.platform.container.IContainerHandle;
+import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.MixinEnvironment.Phase;
 import org.spongepowered.asm.mixin.extensibility.IRemapper;
+import org.spongepowered.asm.obfuscation.FMLLegacyDevRemapper;
 import org.spongepowered.asm.service.mojang.MixinServiceLaunchWrapper;
 import org.spongepowered.asm.util.Constants;
 import org.spongepowered.asm.util.IConsumer;
@@ -179,9 +181,10 @@ public class MixinPlatformAgentFMLLegacy extends MixinPlatformAgentAbstract impl
      * fml to subsequently re-evaluate the container for coremod candidacy.
      * 
      * <p>Further, if the "fml core plugin contains fml mod" flag is set in the
-     * manifest, the container will be manually injected by this agent into the
-     * "reparseable coremods" collection which will cause it to be crawled for
-     * regular mods as well.</p> 
+     * manifest and the mod is not on the boot class path, the container will
+     * be manually injected by this agent into the "reparseable coremods"
+     * collection, which will prevent fml from crawling it multiple times for
+     * regular mods and constructing duplicate mod containers.</p>
      */
     private void loadAsMod() {
         try {
@@ -193,15 +196,26 @@ public class MixinPlatformAgentFMLLegacy extends MixinPlatformAgentAbstract impl
         if (this.handle.getAttribute(MixinPlatformAgentFMLLegacy.MFATT_COREMODCONTAINSMOD) != null) {
             if (this.isIgnoredReparseable()) {
                 MixinPlatformAgentAbstract.logger.debug(
-                        "Ignoring request to add {} to reparseable coremod collection - it is a deobfuscated dependency", this.fileName);
+                        "Ignoring request to add {} to reparseable coremod collection - it is on the class path", this.fileName);
                 return;
             }
             this.addReparseableJar();
         }
     }
 
+    /**
+     * <p>Reparseable coremods are excluded from being crawled for regular mods
+     * during <i>class path</i> mod discovery, so we must not add mods on the
+     * boot class path to this list.</p>
+     *
+     * <p>The reason we use the <i>boot</i> class path is because coremods in
+     * the mods directory have been injected into the class path at this point,
+     * and we <i>do</i> want to mark those as reparseable, so they don't get
+     * crawled during both the <i>class path</i> and <i>mod directory</i> mod
+     * discovery steps.
+     */
     private boolean isIgnoredReparseable() {
-        return this.handle.toString().contains("deobfedDeps");
+        return System.getProperty("java.class.path").contains(this.fileName);
     }
 
     /**
@@ -403,14 +417,19 @@ public class MixinPlatformAgentFMLLegacy extends MixinPlatformAgentAbstract impl
     }
 
     private void injectRemapper() {
+        MixinEnvironment env = MixinEnvironment.getDefaultEnvironment();
         try {
             MixinPlatformAgentAbstract.logger.debug("Creating FML remapper adapter: {}", MixinPlatformAgentFMLLegacy.FML_REMAPPER_ADAPTER_CLASS);
             Class<?> clFmlRemapperAdapter = Class.forName(MixinPlatformAgentFMLLegacy.FML_REMAPPER_ADAPTER_CLASS, true, Launch.classLoader);
             Method mdCreate = clFmlRemapperAdapter.getDeclaredMethod("create");
             IRemapper remapper = (IRemapper)mdCreate.invoke(null);
-            MixinEnvironment.getDefaultEnvironment().getRemappers().add(remapper);
+            env.getRemappers().add(remapper);
         } catch (Exception ex) {
             MixinPlatformAgentAbstract.logger.debug("Failed instancing FML remapper adapter, things will probably go horribly for notch-obf'd mods!");
+        }
+
+        if (env.getOption(MixinEnvironment.Option.REFMAP_REMAP)) {
+            env.getRemappers().add(new FMLLegacyDevRemapper(env));
         }
     }
 

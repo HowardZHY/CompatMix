@@ -96,7 +96,7 @@ public final class GlobalProperties {
             }
             return key;
         }
-        
+
     }
     
     private static IGlobalPropertyService service;
@@ -122,6 +122,11 @@ public final class GlobalProperties {
         return service.<T>getProperty(key.resolve(service));
     }
 
+    // Backwards compatibility
+    public static <T> T get(String key) {
+        return get(Keys.of(key));
+    }
+
     /**
      * Put the specified value onto the blackboard
      * 
@@ -133,6 +138,11 @@ public final class GlobalProperties {
         service.setProperty(key.resolve(service), value);
     }
     
+    // Backwards compatibility
+    public static void put(String key, Object value) {
+        put(Keys.of(key), value);
+    }
+
     /**
      * Get the value from the blackboard but return <tt>defaultValue</tt> if the
      * specified key is not set.
@@ -147,6 +157,11 @@ public final class GlobalProperties {
         return service.getProperty(key.resolve(service), defaultValue);
     }
     
+    // Backwards compatibility
+    public static <T> T get(String key, T defaultValue) {
+        return get(Keys.of(key), defaultValue);
+    }
+
     /**
      * Get a string from the blackboard, returns default value if not set or
      * null.
@@ -159,6 +174,11 @@ public final class GlobalProperties {
     public static String getString(Keys key, String defaultValue) {
         IGlobalPropertyService service = GlobalProperties.getService();
         return service.getPropertyString(key.resolve(service), defaultValue);
+    }
+
+    // Backwards compatibility
+    public static String getString(String key, String defaultValue) {
+        return getString(Keys.of(key), defaultValue);
     }
 
 }

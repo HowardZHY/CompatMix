@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import net.minecraft.launchwrapper.LaunchClassLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ClassReader;
@@ -82,7 +83,16 @@ public class MixinServiceLaunchWrapper extends MixinServiceAbstract implements I
     // Consts
     private static final String STATE_TWEAKER = MixinServiceAbstract.MIXIN_PACKAGE + "EnvironmentStateTweaker";
     private static final String TRANSFORMER_PROXY_CLASS = MixinServiceAbstract.MIXIN_PACKAGE + "transformer.Proxy";
-    
+
+    private static final String SERVICE_PACKAGE = "org.spongepowered.asm.service.";
+    private static final String LAUNCH_PACKAGE = "org.spongepowered.asm.launch.";
+    private static final String LOGGING_PACKAGE = "org.spongepowered.asm.logging.";
+
+    private static final String MIXIN_UTIL_PACKAGE = "org.spongepowered.asm.util.";
+    private static final String LEGACY_ASM_PACKAGE = "org.spongepowered.asm.lib.";
+    private static final String ASM_PACKAGE = "org.objectweb.asm.";
+    private static final String MIXIN_PACKAGE = "org.spongepowered.asm.mixin.";
+
     /**
      * Known re-entrant transformers, other re-entrant transformers will
      * detected automatically 
@@ -102,7 +112,7 @@ public class MixinServiceLaunchWrapper extends MixinServiceAbstract implements I
     /**
      * Utility for reflecting into Launch ClassLoader
      */
-    private final LaunchClassLoaderUtil classLoaderUtil;
+    private LaunchClassLoaderUtil classLoaderUtil;
     
     /**
      * Local transformer chain, this consists of all transformers present at the
@@ -117,10 +127,6 @@ public class MixinServiceLaunchWrapper extends MixinServiceAbstract implements I
      */
     private IClassNameTransformer nameTransformer;
     
-    public MixinServiceLaunchWrapper() {
-        this.classLoaderUtil = new LaunchClassLoaderUtil(Launch.classLoader);
-    }
-    
     @Override
     public String getName() {
         return "LaunchWrapper";
@@ -133,7 +139,7 @@ public class MixinServiceLaunchWrapper extends MixinServiceAbstract implements I
     public boolean isValid() {
         try {
             // Detect launchwrapper
-            Launch.classLoader.hashCode();
+            LaunchClassLoader ignored = Launch.classLoader;
         } catch (Throwable ex) {
             return false;
         }
@@ -145,8 +151,16 @@ public class MixinServiceLaunchWrapper extends MixinServiceAbstract implements I
      */
     @Override
     public void prepare() {
-        // Only needed in dev, in production this would be handled by the tweaker
-        Launch.classLoader.addClassLoaderExclusion(MixinServiceAbstract.LAUNCH_PACKAGE);
+        // Essential ones
+        Launch.classLoader.addClassLoaderExclusion(MixinServiceLaunchWrapper.SERVICE_PACKAGE);
+        Launch.classLoader.addClassLoaderExclusion(MixinServiceLaunchWrapper.LAUNCH_PACKAGE);
+        Launch.classLoader.addClassLoaderExclusion(MixinServiceLaunchWrapper.LOGGING_PACKAGE);
+
+        // Important ones
+        Launch.classLoader.addClassLoaderExclusion(MixinServiceLaunchWrapper.ASM_PACKAGE);
+        Launch.classLoader.addClassLoaderExclusion(MixinServiceLaunchWrapper.LEGACY_ASM_PACKAGE);
+        Launch.classLoader.addClassLoaderExclusion(MixinServiceLaunchWrapper.MIXIN_PACKAGE);
+        Launch.classLoader.addClassLoaderExclusion(MixinServiceLaunchWrapper.MIXIN_UTIL_PACKAGE);
     }
     
     /* (non-Javadoc)
@@ -281,7 +295,7 @@ public class MixinServiceLaunchWrapper extends MixinServiceAbstract implements I
      */
     @Override
     public IClassTracker getClassTracker() {
-        return this.classLoaderUtil;
+        return this.getClassLoaderUtil();
     }
     
     /* (non-Javadoc)
@@ -542,7 +556,7 @@ public class MixinServiceLaunchWrapper extends MixinServiceAbstract implements I
      *      except the excluded transformers
      */
     private byte[] applyTransformers(String name, String transformedName, byte[] basicClass, Profiler profiler) {
-        if (this.classLoaderUtil.isClassExcluded(name, transformedName)) {
+        if (this.getClassLoaderUtil().isClassExcluded(name, transformedName)) {
             return basicClass;
         }
 
@@ -648,6 +662,14 @@ public class MixinServiceLaunchWrapper extends MixinServiceAbstract implements I
         }
         
         return 0;
+    }
+
+    /** Initialize lazily so we don't reference LaunchWrapper's class loader before it has initialized. */
+    private LaunchClassLoaderUtil getClassLoaderUtil() {
+        if (this.classLoaderUtil == null) {
+            this.classLoaderUtil = new LaunchClassLoaderUtil(Launch.classLoader);
+        }
+        return this.classLoaderUtil;
     }
     
 }
