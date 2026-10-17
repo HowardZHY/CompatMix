@@ -43,6 +43,8 @@ import org.objectweb.asm.tree.*;
 import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.Printer;
 import org.objectweb.asm.util.TraceClassVisitor;
+import org.spongepowered.asm.mixin.MixinEnvironment;
+import org.spongepowered.asm.mixin.transformer.MixinTargetContext;
 import org.spongepowered.asm.util.asm.ASM;
 import org.spongepowered.asm.util.asm.MarkerNode;
 import org.spongepowered.asm.util.throwables.SyntheticBridgeException;
@@ -946,7 +948,7 @@ public final class Bytecode {
             if (insn.getOpcode() == Opcodes.BIPUSH || insn.getOpcode() == Opcodes.SIPUSH) {
                 return Integer.valueOf(value);
             }
-            throw new IllegalArgumentException("IntInsnNode with invalid opcode " + insn.getOpcode() + " in getConstant");
+            return null;
         } else if (insn instanceof TypeInsnNode) {
             if (insn.getOpcode() < Opcodes.CHECKCAST) {
                 return null; // Don't treat NEW and ANEWARRAY as constants 
@@ -1407,6 +1409,50 @@ public final class Bytecode {
         
         destination.addAll(source);
         return destination;
+    }
+
+    public static boolean isEnumValuesArray(FieldNode field, ClassNode enumClass) {
+        return Bytecode.hasFlag(field, Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC) && field.desc.equals("[L" + enumClass.name + ';');
+    }
+
+    public static boolean isEnumConstant(FieldNode field, ClassNode enumClass) {
+        return Bytecode.hasFlag(field, Opcodes.ACC_STATIC | Opcodes.ACC_ENUM) && field.desc.equals('L' + enumClass.name + ';');
+    }
+
+    public static AbstractInsnNode loadIntConstant(int intValue) {
+        if (-1 <= intValue && intValue <= 5) {
+            return new InsnNode(Opcodes.ICONST_0 + intValue);
+        } else if (Byte.MIN_VALUE <= intValue && intValue <= Byte.MAX_VALUE) {
+            return new IntInsnNode(Opcodes.BIPUSH, intValue);
+        } else if (Short.MIN_VALUE <= intValue && intValue <= Short.MAX_VALUE) {
+            return new IntInsnNode(Opcodes.SIPUSH, intValue);
+        } else {
+            return new LdcInsnNode(intValue);
+        }
+    }
+
+    /**
+     * Generates a method instruction for invoking the provided method, in the provided class. The opcode used matches
+     * the behavior of javac for the class version of the provided {@code context}.
+     * @param target class of the method to be invoked
+     * @param method method to invoke
+     * @param context context for the mixin causing this instruction
+     * @return method instruction with the proper opcode
+     */
+    public static MethodInsnNode invokeMethod(ClassNode target, MethodNode method, MixinTargetContext context) {
+        boolean isPrivate = Bytecode.hasFlag(method, Opcodes.ACC_PRIVATE);
+        boolean isInterface = Bytecode.hasFlag(target, Opcodes.ACC_INTERFACE);
+        boolean isStatic = Bytecode.hasFlag(method, Opcodes.ACC_STATIC);
+
+        // With JEP 181, javac now emits INVOKEINTERFACE for interface private methods, and INVOKEVIRTUAL for class private methods
+        MixinEnvironment.CompatibilityLevel requiredCompatLevel = MixinEnvironment.CompatibilityLevel.forClassVersion(context.getMinRequiredClassVersion());
+        boolean supportsNestMateAccess = requiredCompatLevel.supports(LanguageFeatures.NESTING);
+
+        int invokeOpcode = isStatic ? Opcodes.INVOKESTATIC :
+                isPrivate && !supportsNestMateAccess ? Opcodes.INVOKESPECIAL :
+                isInterface ? Opcodes.INVOKEINTERFACE :
+                Opcodes.INVOKEVIRTUAL;
+        return new MethodInsnNode(invokeOpcode, target.name, method.name, method.desc, isInterface);
     }
 
 }

@@ -377,6 +377,7 @@ public final class MixinEnvironment implements ITokenProvider {
          * in the refmap. To disable this behaviour, set this property to
          * <tt>false</tt>.
          */
+        @Deprecated
         REFMAP_REMAP_ALLOW_PERMISSIVE(Option.ENVIRONMENT, Inherit.INDEPENDENT, "allowPermissiveMatch", true, "true"),
         
         /**
@@ -908,7 +909,7 @@ public final class MixinEnvironment implements ITokenProvider {
         /**
          * Default compatibility level to use if not specified by the service 
          */
-        public static CompatibilityLevel DEFAULT = CompatibilityLevel.JAVA_6;
+        public static final CompatibilityLevel DEFAULT = CompatibilityLevel.JAVA_6;
         
         /**
          * Maximum compatibility level actually supported. Other compatibility
@@ -930,7 +931,7 @@ public final class MixinEnvironment implements ITokenProvider {
          * PR #500 which demonstrates that the nature of compatibility levels
          * in mixin are not understood that well.</p>
          */
-        public static CompatibilityLevel MAX_SUPPORTED = CompatibilityLevel.JAVA_13;
+        public static final CompatibilityLevel MAX_SUPPORTED = CompatibilityLevel.JAVA_13;
         
         private final int ver;
         
@@ -1874,7 +1875,7 @@ public final class MixinEnvironment implements ITokenProvider {
             }
             
             MixinEnvironment.compatibility = level;
-            MixinEnvironment.logger.info("Compatibility level set to {}", level);
+            MixinEnvironment.logger.debug("Compatibility level set to {}", level);
         }
     }
     
